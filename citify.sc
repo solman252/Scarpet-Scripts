@@ -3,13 +3,30 @@ __config() -> {
    {
       'get' -> _() ->  _get(),
       'set <id>' -> '_set',
-      'reset' -> _() ->  _reset()
-      
+      'reset' -> _() ->  _reset(),
+      'placeable <bool>' -> '_placeable',
    },
    'arguments' -> {
       'id' -> {'type' -> 'string', 'suggest' -> ['"CIT ID"']},
-   }
+      'bool' -> {'type' -> 'bool'}
+   },
+   'stay_loaded' -> true
 };
+
+_placeable(_bool) -> (
+    slot = player()~'selected_slot';
+    item = inventory_get(player(), slot);
+    if( item == null, (
+        print(format('r You are not holding anything.'))
+    ) // else
+        [id,count,nbt] = item;
+        if( nbt == null,
+            nbt = nbt('{}')
+        );
+        put(nbt,'CITPlaceable',_bool);
+        inventory_set(player(), slot,count,id,nbt)
+    );
+);
 
 _set(cit_id) -> (
     slot = player()~'selected_slot';
@@ -22,6 +39,7 @@ _set(cit_id) -> (
             nbt = nbt('{}')
         );
         put(nbt,'CIT','"'+cit_id+'"');
+        put(nbt,'CITPlaceable',true);
         inventory_set(player(), slot,count,id,nbt)
     );
 );
@@ -62,6 +80,7 @@ __on_player_right_clicks_block(player, item, hand, block, face, h) -> (
 	if(
 		player()~'sneaking' && 
         item:2:'CIT' != null &&
+        item:2:'CITPlaceable' == 1 &&
 		block != 'air',
 		slot = if(hand=='mainhand', player()~'selected_slot', -1);
         if(
